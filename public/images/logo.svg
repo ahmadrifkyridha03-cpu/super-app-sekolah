@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="50%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="navyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A" />
+      <stop offset="100%" stop-color="#0F2942" />
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#EF4444" />
+      <stop offset="60%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FDE047" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0F2942" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Outer Ring with Gold Accent -->
+  <circle cx="250" cy="250" r="236" fill="none" stroke="url(#goldGrad)" stroke-width="8" />
+  <circle cx="250" cy="250" r="224" fill="url(#navyGrad)" stroke="url(#goldGrad)" stroke-width="3" filter="url(#shadow)" />
+  <circle cx="250" cy="250" r="162" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-dasharray="6,4" />
+
+  <!-- Circular Text SMA NEGERI UNGGULAN BANGSA -->
+  <path id="textArcTop" fill="none" d="M 68,250 A 182,182 0 1,1 432,250" />
+  <text fill="#FFFFFF" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="22" font-weight="800" letter-spacing="4.5">
+    <textPath href="#textArcTop" startOffset="50%" text-anchor="middle">
+      SMA NEGERI UNGGULAN BANGSA
+    </textPath>
+  </text>
+
+  <!-- Circular Text Bottom: MOTTO & EST -->
+  <path id="textArcBottom" fill="none" d="M 432,250 A 182,182 0 0,1 68,250" />
+  <text fill="#FCD34D" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="5">
+    <textPath href="#textArcBottom" startOffset="50%" text-anchor="middle">
+      ★ BERAKHLAK • UNGGUL • BERPRESTASI ★
+    </textPath>
+  </text>
+
+  <!-- Inner Crest Shield -->
+  <g transform="translate(0, 10)">
+    <!-- Shield Base -->
+    <path d="M 250,135 
+             C 320,135 345,150 345,215 
+             C 345,295 285,345 250,365 
+             C 215,345 155,295 155,215 
+             C 155,150 180,135 250,135 Z" 
+          fill="#FFFFFF" 
+          stroke="url(#goldGrad)" 
+          stroke-width="5" />
+
+    <!-- Shield Inner Fill (Soft Navy Tint) -->
+    <path d="M 250,143 
+             C 314,143 337,156 337,215 
+             C 337,288 282,335 250,353 
+             C 218,335 163,288 163,215 
+             C 163,156 186,143 250,143 Z" 
+          fill="#0B1E32" />
+
+    <!-- Laurel Wreath Left -->
+    <path d="M 175,285 C 160,250 162,205 185,175" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round" />
+    <path d="M 170,270 C 158,260 162,250 174,256" fill="url(#goldGrad)" />
+    <path d="M 166,245 C 154,236 159,226 170,233" fill="url(#goldGrad)" />
+    <path d="M 168,220 C 157,211 163,201 173,209" fill="url(#goldGrad)" />
+    <path d="M 176,195 C 166,187 173,178 182,186" fill="url(#goldGrad)" />
+
+    <!-- Laurel Wreath Right -->
+    <path d="M 325,285 C 340,250 338,205 315,175" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round" />
+    <path d="M 330,270 C 342,260 338,250 326,256" fill="url(#goldGrad)" />
+    <path d="M 334,245 C 346,236 341,226 330,233" fill="url(#goldGrad)" />
+    <path d="M 332,220 C 343,211 337,201 327,209" fill="url(#goldGrad)" />
+    <path d="M 324,195 C 334,187 327,178 318,186" fill="url(#goldGrad)" />
+
+    <!-- Central Flame of Knowledge (Torch) -->
+    <path d="M 250,165 
+             C 258,180 266,192 262,204 
+             C 258,214 246,216 250,225 
+             C 243,222 238,214 240,206 
+             C 242,196 237,190 250,165 Z" 
+          fill="url(#flameGrad)" />
+
+    <!-- Torch Base Bowl -->
+    <path d="M 238,225 L 262,225 L 257,236 L 243,236 Z" fill="url(#goldGrad)" />
+
+    <!-- Open Book of Knowledge -->
+    <!-- Left Page -->
+    <path d="M 250,265 C 228,252 200,252 185,257 L 185,296 C 200,291 228,291 250,304 Z" 
+          fill="#FFFFFF" stroke="#0F2942" stroke-width="2" />
+    <line x1="194" y1="268" x2="240" y2="277" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+    <line x1="194" y1="277" x2="240" y2="286" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+    <line x1="194" y1="286" x2="232" y2="294" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Right Page -->
+    <path d="M 250,265 C 272,252 300,252 315,257 L 315,296 C 300,291 272,291 250,304 Z" 
+          fill="#FFFFFF" stroke="#0F2942" stroke-width="2" />
+    <line x1="260" y1="277" x2="306" y2="268" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+    <line x1="260" y1="286" x2="306" y2="277" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+    <line x1="268" y1="294" x2="306" y2="286" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Book Spine -->
+    <path d="M 248,265 L 252,265 L 252,305 L 248,305 Z" fill="url(#goldGrad)" />
+
+    <!-- Five-Pointed Star of Excellence -->
+    <polygon points="250,314 253,322 262,322 255,327 258,335 250,330 242,335 245,327 238,322 247,322" 
+             fill="url(#goldGrad)" />
+  </g>
+</svg>

@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: super_app_sekolah
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/school.db
+      - JWT_SECRET=rahasia-kunci-jwt-super-app-sekolah-minimal-32-karakter-resmi
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - ENABLE_DEMO_SWITCHER=false
+      - UPLOAD_MAX_SIZE_MB=5
+    volumes:
+      - school_storage:/app/data
+
+volumes:
+  school_storage:
+    driver: local

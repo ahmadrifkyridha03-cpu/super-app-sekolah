@@ -1,0 +1,676 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==============================================================================
+// 1. DOMAIN PROFIL SEKOLAH & PENGGUNA
+// ==============================================================================
+
+model SchoolProfile {
+  id            String   @id @default("default")
+  name          String   @default("SMA Negeri Unggulan Bangsa")
+  tagline       String   @default("Berakhlak, Unggul, Berprestasi")
+  npsn          String   @default("20104050")
+  address       String   @default("Jl. Pendidikan No. 45, Jakarta Pusat")
+  phone         String   @default("(021) 555-0199")
+  email         String   @default("info@sekolah.sch.id")
+  website       String   @default("https://sekolah.sch.id")
+  principalName String   @default("Dr. H. Muhammad Arifin, M.Pd.")
+  principalNip  String   @default("197204151998021003")
+  accreditation String   @default("A (Unggul)")
+  logoUrl       String?  @default("/images/logo.svg")
+  heroImageUrl  String?  @default("/images/hero-school.jpg")
+  updatedAt     DateTime @updatedAt
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN_TU
+  KEPALA_SEKOLAH
+  GURU
+  SISWA
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  username           String    @unique
+  password           String    // Bcrypt hash (Cost 10)
+  mustChangePassword Boolean   @default(true)
+  role               Role      @default(SISWA)
+  name               String
+  email              String?
+  avatar             String?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  teacher            Teacher?
+  student            Student?
+  auditLogs          AuditLog[]
+  recordedAttendances DailyAttendance[]
+}
+
+// ==============================================================================
+// 2. DOMAIN MASTER DATA AKADEMIK
+// ==============================================================================
+
+model AcademicYear {
+  id          String   @id @default(uuid())
+  name        String   // e.g. "2026/2027"
+  semester    Int      // 1 = Ganjil, 2 = Genap
+  reportDate  DateTime? // Tanggal cetak rapor resmi
+  isActive    Boolean  @default(false)
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+
+  studentClassHistories StudentClassHistory[]
+  teachingAssignments   TeachingAssignment[]
+  learningObjectives    LearningObjective[]
+  reportCards           ReportCard[]
+  dailyAttendances      DailyAttendance[]
+  coCurricularProjects  CoCurricularProject[]
+  exams                 Exam[]
+
+  @@unique([name, semester])
+}
+
+model ClassRoom {
+  id                 String    @id @default(uuid())
+  name               String    // e.g. "X-A", "XI-IPA-1"
+  grade              Int       // 10, 11, 12
+  isArchived         Boolean   @default(false)
+  homeroomTeacherId  String?   @unique
+  homeroomTeacher    Teacher?  @relation(fields: [homeroomTeacherId], references: [id])
+
+  students           Student[]
+  classHistories     StudentClassHistory[]
+  assignments        TeachingAssignment[]
+  dailyAttendances   DailyAttendance[]
+  reportCards        ReportCard[]
+  examClasses        ExamClass[]
+  learningMaterials  LearningMaterial[]
+  scheduleItems      ScheduleItem[]
+}
+
+enum StudentStatus {
+  ACTIVE
+  MUTASI
+  ALUMNI
+  DROPOUT
+}
+
+model Student {
+  id          String        @id @default(uuid())
+  userId      String        @unique
+  user        User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  nis         String?       @unique
+  nisn        String        @unique
+  birthPlace  String?
+  birthDate   DateTime?
+  gender      String?       // "L" / "P"
+  address     String?
+  parentName  String?
+  parentPhone String?
+  status      StudentStatus @default(ACTIVE)
+  classId     String
+  classRoom   ClassRoom     @relation(fields: [classId], references: [id])
+
+  classHistories          StudentClassHistory[]
+  assessmentScores        AssessmentScore[]
+  subjectGrades           SubjectGrade[]
+  examSessions            ExamSession[]
+  examParticipants        ExamParticipant[]
+  dailyAttendanceRecords  DailyAttendanceRecord[]
+  subjectAttendanceRecords SubjectAttendanceRecord[]
+  reportCards             ReportCard[]
+  coCurricularScores      CoCurricularStudentScore[]
+  extracurricularMembers  ExtracurricularMember[]
+}
+
+model StudentClassHistory {
+  id             String       @id @default(uuid())
+  studentId      String
+  classId        String
+  academicYearId String
+  status         String       @default("IN_PROGRESS") // IN_PROGRESS, PROMOTED, RETAINED, GRADUATED
+
+  student        Student      @relation(fields: [studentId], references: [id])
+  classRoom      ClassRoom    @relation(fields: [classId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([studentId, academicYearId])
+}
+
+model Teacher {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  nip          String?  @unique
+  specialty    String?  // Mapel utama / keahlian
+  signatureUrl String?
+  isArchived   Boolean  @default(false)
+
+  homeroomClass       ClassRoom?
+  teachingAssignments TeachingAssignment[]
+  questionBanks       QuestionBank[]
+  exams               Exam[]
+  learningMaterials   LearningMaterial[]
+  scheduleItems       ScheduleItem[]
+  advisedExtracurriculars Extracurricular[]
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  kktp        Float    @default(75.0)
+  isArchived  Boolean  @default(false)
+
+  assignments         TeachingAssignment[]
+  learningObjectives  LearningObjective[]
+  questionBanks       QuestionBank[]
+  exams               Exam[]
+  learningMaterials   LearningMaterial[]
+  scheduleItems       ScheduleItem[]
+}
+
+model TeachingAssignment {
+  id             String       @id @default(uuid())
+  academicYearId String
+  teacherId      String
+  subjectId      String
+  classId        String
+  weightTask     Float        @default(30.0)
+  weightCbt      Float        @default(20.0)
+  weightMidterm  Float        @default(25.0)
+  weightFinal    Float        @default(25.0)
+
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  teacher        Teacher      @relation(fields: [teacherId], references: [id])
+  subject        Subject      @relation(fields: [subjectId], references: [id])
+  classRoom      ClassRoom    @relation(fields: [classId], references: [id])
+
+  assessments               Assessment[]
+  subjectGrades             SubjectGrade[]
+  scheduleItems             ScheduleItem[]
+  exams                     Exam[]
+  subjectAttendanceSessions SubjectAttendanceSession[]
+
+  @@unique([academicYearId, teacherId, subjectId, classId])
+  @@index([teacherId, academicYearId])
+}
+
+model ScheduleItem {
+  id           String             @id @default(uuid())
+  assignmentId String
+  classId      String
+  subjectId    String
+  teacherId    String
+  dayOfWeek    Int                // 1 = Senin, ... 6 = Sabtu
+  startTime    String             // "07:30"
+  endTime      String             // "09:00"
+  room         String?
+
+  assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  classRoom    ClassRoom          @relation(fields: [classId], references: [id])
+  subject      Subject            @relation(fields: [subjectId], references: [id])
+  teacher      Teacher            @relation(fields: [teacherId], references: [id])
+}
+
+// ==============================================================================
+// 3. DOMAIN PENILAIAN KURIKULUM MERDEKA (TP-BASED)
+// ==============================================================================
+
+model LearningObjective {
+  id             String       @id @default(uuid())
+  academicYearId String
+  subjectId      String
+  grade          Int          // 10, 11, 12
+  code           String       // "TP-1", "TP-2"
+  description    String       // "Menjelaskan konsep limit fungsi aljabar..."
+
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  subject        Subject      @relation(fields: [subjectId], references: [id])
+  assessments    Assessment[]
+}
+
+enum AssessmentType {
+  FORMATIF_TUGAS
+  SUMATIF_HARIAN_CBT
+  SUMATIF_TENGAH_SEMESTER
+  SUMATIF_AKHIR_SEMESTER
+  REMEDIAL
+}
+
+model Assessment {
+  id           String             @id @default(uuid())
+  assignmentId String
+  objectiveId  String?
+  title        String
+  type         AssessmentType
+  maxScore     Float              @default(100.0)
+  cbtExamId    String?
+  createdAt    DateTime           @default(now())
+
+  assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  objective    LearningObjective? @relation(fields: [objectiveId], references: [id])
+  cbtExam      Exam?              @relation(fields: [cbtExamId], references: [id])
+  scores       AssessmentScore[]
+}
+
+model AssessmentScore {
+  id            String     @id @default(uuid())
+  assessmentId  String
+  studentId     String
+  rawScore      Float?     // NULL = belum ada nilai (Bukan 0!)
+  remedialScore Float?     // Remedial dibatasi <= KKTP
+  finalScore    Float?
+  updatedAt     DateTime   @updatedAt
+
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student       Student    @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, studentId])
+  @@index([assessmentId, studentId])
+}
+
+model SubjectGrade {
+  id           String             @id @default(uuid())
+  assignmentId String
+  studentId    String
+  overallScore Float?             // Rata-rata terbobot akhir
+  predicate    String?            // "A", "B", "C", "D"
+  description  String?            // Auto-generated narasi TP tercapai & perlu bimbingan
+  isLocked     Boolean            @default(false)
+  lockedAt     DateTime?
+
+  assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student            @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId, studentId])
+}
+
+// ==============================================================================
+// 4. DOMAIN MESIN UJIAN CBT (COMPUTER BASED TEST)
+// ==============================================================================
+
+model QuestionBank {
+  id        String     @id @default(uuid())
+  title     String
+  subjectId String
+  teacherId String
+  createdAt DateTime   @default(now())
+
+  subject   Subject    @relation(fields: [subjectId], references: [id])
+  teacher   Teacher    @relation(fields: [teacherId], references: [id])
+  questions Question[]
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  ESSAY
+}
+
+model Question {
+  id            String       @id @default(uuid())
+  bankId        String
+  type          QuestionType @default(MULTIPLE_CHOICE)
+  content       String       // Mendukung KaTeX & tag HTML img
+  options       String?      // JSON array string: ["Opsi A", "Opsi B", ...]
+  correctAnswer String?      // "A", "B", "C", "D", "E" (Null jika essay)
+  scoringRubric String?
+  explanation   String?
+  defaultWeight Float        @default(1.0)
+
+  bank          QuestionBank   @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  examQuestions ExamQuestion[]
+}
+
+enum ExamCategory {
+  HARIAN
+  UTS
+  UAS
+  REMEDIAL
+}
+
+model Exam {
+  id               String             @id @default(uuid())
+  title            String
+  category         ExamCategory       @default(HARIAN)
+  token            String             // 6 karakter token rilis soal
+  subjectId        String
+  teacherId        String
+  assignmentId     String?
+  academicYearId   String
+  durationMinutes  Int
+  startTime        DateTime
+  endTime          DateTime
+  shuffleQuestions Boolean            @default(true)
+  shuffleOptions   Boolean            @default(true)
+  isLocked         Boolean            @default(false)
+  createdAt        DateTime           @default(now())
+
+  subject          Subject            @relation(fields: [subjectId], references: [id])
+  teacher          Teacher            @relation(fields: [teacherId], references: [id])
+  assignment       TeachingAssignment? @relation(fields: [assignmentId], references: [id])
+  academicYear     AcademicYear       @relation(fields: [academicYearId], references: [id])
+
+  examQuestions    ExamQuestion[]
+  examClasses      ExamClass[]
+  participants     ExamParticipant[]
+  sessions         ExamSession[]
+  assessments      Assessment[]
+}
+
+model ExamQuestion {
+  id                   String          @id @default(uuid())
+  examId               String
+  questionId           String
+  orderNumber          Int             @default(1)
+  scoreWeight          Float           @default(1.0)
+  overrideCorrectAnswer String?
+
+  exam                 Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question             Question        @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  studentAnswers       StudentAnswer[]
+
+  @@unique([examId, questionId])
+}
+
+model ExamClass {
+  id      String    @id @default(uuid())
+  examId  String
+  classId String
+
+  exam    Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class   ClassRoom @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, classId])
+}
+
+model ExamParticipant {
+  id        String  @id @default(uuid())
+  examId    String
+  studentId String
+
+  exam      Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+}
+
+enum SessionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  LOCKED
+  SUBMITTED
+  EXPIRED
+}
+
+model ExamSession {
+  id              String        @id @default(uuid())
+  examId          String
+  studentId       String
+  attemptNumber   Int           @default(1)
+  sessionToken    String?       // Anti-double login
+  deviceInfo      String?
+  ipAddress       String?
+  lastHeartbeatAt DateTime?
+  tabSwitchCount  Int           @default(0)
+  questionOrder   String?       // JSON array ID ExamQuestion per siswa
+  startTime       DateTime      @default(now())
+  deadline        DateTime
+  finishTime      DateTime?
+  status          SessionStatus @default(IN_PROGRESS)
+  finalScore      Float?
+
+  exam            Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student         Student       @relation(fields: [studentId], references: [id])
+  answers         StudentAnswer[]
+
+  @@unique([examId, studentId, attemptNumber])
+  @@index([examId, status])
+}
+
+model StudentAnswer {
+  id             String       @id @default(uuid())
+  sessionId      String
+  examQuestionId String
+  answerText     String?      // Opsi "A"-"E" atau teks jawaban essay
+  isDoubtful     Boolean      @default(false)
+  isCorrect      Boolean?
+  scoreEarned    Float?
+  seq            Int          @default(1) // Monotonic sequence counter untuk atomic autosave
+  updatedAt      DateTime     @updatedAt
+
+  session        ExamSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  examQuestion   ExamQuestion @relation(fields: [examQuestionId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, examQuestionId])
+  @@index([sessionId, examQuestionId])
+}
+
+// ==============================================================================
+// 5. DOMAIN ABSENSI TERPISAH (HARIAN VS MAPEL)
+// ==============================================================================
+
+enum AttendanceStatus {
+  HADIR
+  SAKIT
+  IZIN
+  DISPENSASI
+  ALPA
+}
+
+model DailyAttendance {
+  id             String                  @id @default(uuid())
+  date           DateTime
+  classId        String
+  academicYearId String
+  recordedById   String
+
+  classRoom      ClassRoom               @relation(fields: [classId], references: [id])
+  academicYear   AcademicYear            @relation(fields: [academicYearId], references: [id])
+  recordedBy     User                    @relation(fields: [recordedById], references: [id])
+  records        DailyAttendanceRecord[]
+
+  @@unique([classId, date])
+  @@index([classId, date])
+}
+
+model DailyAttendanceRecord {
+  id           String           @id @default(uuid())
+  attendanceId String
+  studentId    String
+  status       AttendanceStatus @default(HADIR)
+  note         String?
+
+  attendance   DailyAttendance  @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  student      Student          @relation(fields: [studentId], references: [id])
+
+  @@unique([attendanceId, studentId])
+}
+
+model SubjectAttendanceSession {
+  id           String                    @id @default(uuid())
+  assignmentId String
+  date         DateTime
+  topic        String?
+
+  assignment   TeachingAssignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  records      SubjectAttendanceRecord[]
+}
+
+model SubjectAttendanceRecord {
+  id        String                   @id @default(uuid())
+  sessionId String
+  studentId String
+  status    AttendanceStatus         @default(HADIR)
+  note      String?
+
+  session   SubjectAttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student   Student                  @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+}
+
+// ==============================================================================
+// 6. DOMAIN RAPOR, KOKURIKULER & EKSTRAKURIKULER
+// ==============================================================================
+
+model ReportCard {
+  id                String       @id @default(uuid())
+  studentId         String
+  classId           String
+  academicYearId    String
+  sickDays          Int          @default(0)
+  permissionDays    Int          @default(0)
+  dispensationDays  Int          @default(0)
+  unexcusedDays     Int          @default(0)
+  homeroomNotes     String?
+  behaviorGrade     String       @default("Baik")
+  rankInClass       Int?
+  verificationToken String       @unique @default(uuid())
+  status            String       @default("DRAFT") // DRAFT, LOCKED, PUBLISHED
+  lockedAt          DateTime?
+
+  student           Student      @relation(fields: [studentId], references: [id])
+  classRoom         ClassRoom    @relation(fields: [classId], references: [id])
+  academicYear      AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([studentId, academicYearId])
+}
+
+model CoCurricularProject {
+  id             String                     @id @default(uuid())
+  academicYearId String
+  title          String                     // "Gaya Hidup Berkelanjutan: Pengolahan Sampah Organik"
+  theme          String
+  description    String?
+
+  academicYear   AcademicYear               @relation(fields: [academicYearId], references: [id])
+  dimensions     CoCurricularDimension[]
+  studentScores  CoCurricularStudentScore[]
+}
+
+model CoCurricularDimension {
+  id        String                     @id @default(uuid())
+  projectId String
+  name      String                     // "Kreatif", "Gotong Royong", "Mandiri"
+
+  project   CoCurricularProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scores    CoCurricularStudentScore[]
+}
+
+model CoCurricularStudentScore {
+  id          String                @id @default(uuid())
+  projectId   String
+  dimensionId String
+  studentId   String
+  score       String                @default("BSH") // MB (Mulai Berkembang), SB (Sedang), BSH (Sesuai Harapan), SAB (Sangat)
+  notes       String?
+
+  project     CoCurricularProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  dimension   CoCurricularDimension @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  student     Student               @relation(fields: [studentId], references: [id])
+
+  @@unique([projectId, dimensionId, studentId])
+}
+
+model Extracurricular {
+  id          String                  @id @default(uuid())
+  name        String                  // "Pramuka", "PMR", "Futsal", "Rohis", "Robotika"
+  advisorId   String?
+  advisor     Teacher?                @relation(fields: [advisorId], references: [id])
+  members     ExtracurricularMember[]
+}
+
+model ExtracurricularMember {
+  id                String          @id @default(uuid())
+  extracurricularId String
+  studentId         String
+  grade             String          @default("Sangat Baik") // "Sangat Baik", "Baik", "Cukup"
+  notes             String?
+
+  extracurricular   Extracurricular @relation(fields: [extracurricularId], references: [id], onDelete: Cascade)
+  student           Student         @relation(fields: [studentId], references: [id])
+
+  @@unique([extracurricularId, studentId])
+}
+
+// ==============================================================================
+// 7. DOMAIN PORTAL PUBLIK, PPDB & AUDIT LOG
+// ==============================================================================
+
+model LearningMaterial {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String
+  classId     String
+  subjectId   String
+  teacherId   String
+  createdAt   DateTime  @default(now())
+
+  classRoom   ClassRoom @relation(fields: [classId], references: [id])
+  subject     Subject   @relation(fields: [subjectId], references: [id])
+  teacher     Teacher   @relation(fields: [teacherId], references: [id])
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  content     String
+  category    String   @default("Berita") // Berita, Pengumuman, Agenda, Prestasi
+  thumbnail   String?
+  published   Boolean  @default(true)
+  authorName  String   @default("Humas Sekolah")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum PpdbStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model PpdbRegistration {
+  id             String     @id @default(uuid())
+  registrationNo String     @unique // e.g. "PPDB-2026-001"
+  fullName       String
+  nisn           String
+  birthDate      DateTime   // 2FA Key untuk cek status
+  originSchool   String
+  targetMajor    String     @default("MIPA") // MIPA, IPS, BAHASA
+  parentName     String
+  parentPhone    String
+  documentUrl    String?
+  status         PpdbStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String   // "UPDATE_GRADE", "RESET_SESSION", "RECALCULATE", "LOGIN"
+  targetId  String?
+  details   String?  // JSON text of modification delta
+  ipAddress String?
+  timestamp DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, timestamp])
+}
