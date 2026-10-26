@@ -14,7 +14,8 @@ import {
   TrendingUp,
   AlertCircle,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  ExternalLink
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +69,26 @@ export default async function SiswaPortalPage() {
   const activeSession = student?.examSessions.find(
     (s: any) => s.status === "IN_PROGRESS" || s.status === "NOT_STARTED"
   );
+
+  // Fetch dynamic learning materials for this student's class
+  const materials = await prisma.learningMaterial.findMany({
+    where: { classId: student?.classId },
+    include: {
+      subject: true,
+      teacher: { include: { user: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+
+  // Calculate dynamic attendance percentage
+  const sick = reportCard?.sickDays || 0;
+  const permission = reportCard?.permissionDays || 0;
+  const dispensation = reportCard?.dispensationDays || 0;
+  const unexcused = reportCard?.unexcusedDays || 0;
+  const totalAbsent = sick + permission + dispensation + unexcused;
+  const totalEffectiveDays = 100; // Standar hari efektif semester
+  const attendanceRate = Math.max(0, 100 - (totalAbsent / totalEffectiveDays) * 100).toFixed(1);
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -131,10 +152,14 @@ export default async function SiswaPortalPage() {
               <UserCheck className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-navy-900 font-tabular">97.0%</span>
-              <span className="text-xs font-bold text-slate-600">S: 1, I: 0, D: 2</span>
+              <span className="text-2xl font-black text-navy-900 font-tabular">{attendanceRate}%</span>
+              <span className="text-xs font-bold text-slate-600 font-tabular">
+                S:{sick} I:{permission} D:{dispensation} A:{unexcused}
+              </span>
             </div>
-            <p className="text-[11px] text-emerald-600 font-medium mt-1">Status Disiplin Sangat Baik</p>
+            <p className="text-[11px] text-emerald-600 font-medium mt-1">
+              {unexcused === 0 ? "Disiplin Sangat Baik (Tanpa Alpa)" : `${unexcused} Kali Alpa`}
+            </p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -148,7 +173,9 @@ export default async function SiswaPortalPage() {
               </span>
               <span className="text-xs font-semibold text-slate-600">Sesi Terbuka</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">Penilaian Harian Matematika</p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              {activeSession ? activeSession.exam.title : "Tidak ada ujian berjalan"}
+            </p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -270,7 +297,7 @@ export default async function SiswaPortalPage() {
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                 <Calendar className="w-4 h-4 text-navy-900" />
-                <h3 className="font-black text-navy-900 text-sm">Jadwal Kelas X-A Hari Ini</h3>
+                <h3 className="font-black text-navy-900 text-sm">Jadwal Kelas {currentClass?.name || "X-A"} Hari Ini</h3>
               </div>
 
               <div className="space-y-3">
@@ -310,17 +337,44 @@ export default async function SiswaPortalPage() {
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                 <FileText className="w-4 h-4 text-gold-600" />
-                <h3 className="font-black text-navy-900 text-sm">Materi & Template Tugas</h3>
+                <h3 className="font-black text-navy-900 text-sm">Bahan Ajar & Modul Belajar</h3>
               </div>
 
               <div className="space-y-2">
+                {materials.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2">
+                    Belum ada bahan ajar digital yang dibagikan guru kelas.
+                  </p>
+                ) : (
+                  materials.map((mat) => (
+                    <a
+                      key={mat.id}
+                      href={mat.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 text-xs text-navy-900 font-semibold"
+                    >
+                      <span className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-emerald-600" />
+                        <div>
+                          <div>{mat.title}</div>
+                          <div className="text-[10px] text-slate-400 font-normal">
+                            {mat.subject.name} • {mat.teacher.user.name}
+                          </div>
+                        </div>
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                    </a>
+                  ))
+                )}
+
                 <a
                   href="/templates/template_siswa.xlsx"
                   download
-                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 text-xs text-navy-900 font-semibold"
+                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 text-xs text-slate-600 font-semibold border-t border-slate-100 mt-2"
                 >
                   <span className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-emerald-600" />
+                    <FileText className="w-4 h-4 text-slate-400" />
                     Format Biodata Siswa (.xlsx)
                   </span>
                   <span className="text-[10px] text-slate-400">Unduh</span>

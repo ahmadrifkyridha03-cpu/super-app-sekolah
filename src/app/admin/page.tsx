@@ -12,8 +12,10 @@ import {
   Search,
   CheckCircle2,
   Calendar,
-  Layers
+  Layers,
+  Sparkles
 } from "lucide-react";
+import AdminExamManagementView from "@/components/admin/AdminExamManagementView";
 
 export const revalidate = 0; // Dynamic server component
 
@@ -74,7 +76,7 @@ export default async function AdminDashboardPage() {
             Portal Tata Usaha & Staf Administrasi
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-navy-900 tracking-tight mt-1">
-            Manajemen Master Data Sekolah
+            Manajemen Master Data & Penjadwalan CBT
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Tahun Ajaran Aktif: <strong className="text-navy-900">{activeYear?.name || "2026/2027"}</strong> (Semester {activeYear?.semester === 1 ? "Ganjil" : "Genap"})
@@ -144,6 +146,9 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* SECTION KHUSUS: RILIS UJIAN DARI BANK SOAL GURU */}
+      <AdminExamManagementView />
 
       {/* SECTION 1: TABEL DATA SISWA */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">

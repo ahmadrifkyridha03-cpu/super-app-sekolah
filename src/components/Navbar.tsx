@@ -31,7 +31,7 @@ export const Navbar: React.FC = () => {
     { href: "/", label: "Beranda", icon: BookOpen },
     { href: "/ppdb", label: "PPDB Online", icon: UserCheck, badge: "Buka" },
     { href: "/admin", label: "Administrasi", icon: Layers },
-    { href: "/guru", label: "Buku Nilai & TP", icon: FileText },
+    { href: "/guru", label: "Portal Guru", icon: FileText },
     { href: "/cbt", label: "CBT Ujian", icon: CheckCircle },
     { href: "/raport", label: "E-Raport", icon: GraduationCap },
     { href: "/siswa", label: "Portal Siswa", icon: GraduationCap },
